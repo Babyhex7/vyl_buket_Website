@@ -127,7 +127,39 @@ export default function OrderPage() {
 
       if (data.success) {
         alert(`Pesanan berhasil dibuat!\nNomor Order: ${data.data.order_number}`);
-        router.push('/order-success');
+
+        // --- DUMMY FALLBACK: save submitted order to localStorage ---
+        // This is temporary logic so the `order-success` page can display details
+        // even when the real API/endpoint is not ready. Replace this with
+        // proper backend-backed logic (don't rely on localStorage in prod).
+        try {
+          const serverOrder = data.data || {};
+          const fallbackOrder = {
+            id: serverOrder.id,
+            order_number: serverOrder.order_number,
+            created_at: serverOrder.created_at || new Date().toISOString(),
+            customer_name: orderData.customer_name,
+            bouquet: selectedBouquet || null,
+            bouquet_name: selectedBouquet?.name || serverOrder.bouquet_name || '',
+            pickup_date: orderData.pickup_date,
+            pickup_time: orderData.pickup_time,
+            card_message: orderData.card_message,
+            reference_images: orderData.reference_images,
+            payment_proofs: orderData.payment_proofs,
+            total_price: selectedBouquet ? selectedBouquet.price : serverOrder.total_price,
+            total_paid: serverOrder.total_paid || (orderData.payment_type === 'FULL' ? (selectedBouquet?.price || 0) : (selectedBouquet ? (selectedBouquet.price * 0.5) : 0)),
+            sender_phone: orderData.sender_phone,
+            sender_name: orderData.sender_name,
+          };
+          localStorage.setItem('lastOrder', JSON.stringify(fallbackOrder));
+        } catch (err) {
+          // Ignore localStorage errors (e.g., incognito/storage disabled)
+          console.warn('Could not write lastOrder to localStorage', err);
+        }
+
+        // Redirect to order-success and include order identifier so the success page can fetch details
+        const orderId = data.data.id || data.data.order_number;
+        router.push(`/order-success?order_id=${encodeURIComponent(orderId)}`);
       } else {
         throw new Error(data.message);
       }
