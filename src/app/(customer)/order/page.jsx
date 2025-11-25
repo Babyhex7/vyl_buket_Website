@@ -22,6 +22,7 @@ export default function OrderPage() {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
+  const [settingsError, setSettingsError] = useState(false);
 
   const [formData, setFormData] = useState({
     customer_name: "",
@@ -151,9 +152,20 @@ export default function OrderPage() {
 
         if (bouqJson && bouqJson.success)
           setBouquets(bouqJson.data.filter((b) => b.is_active));
-        if (setJson && setJson.success) setSettings(setJson.data || {});
+        
+        if (setJson && setJson.success) {
+          const waData = setJson.data?.whatsapp_number;
+          const whatsappNumber = (typeof waData === 'object' && waData?.value) ? waData.value : (typeof waData === 'string' ? waData : null);
+          if (!whatsappNumber) {
+            setSettingsError(true);
+          }
+          setSettings(setJson.data || {});
+        } else {
+          setSettingsError(true);
+        }
       } catch (err) {
         console.warn("Initial load failed", err);
+        setSettingsError(true);
       }
     };
 
@@ -227,6 +239,14 @@ export default function OrderPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validasi WhatsApp number tersedia
+    const waData = settings?.whatsapp_number;
+    const whatsappNumber = (typeof waData === 'object' && waData?.value) ? waData.value : (typeof waData === 'string' ? waData : null);
+    if (!whatsappNumber) {
+      showToast.error('Nomor WhatsApp belum dikonfigurasi. Tidak dapat melanjutkan pesanan.');
+      return;
+    }
+
     // Validate pickup time is selected and within available slots
     if (!formData.pickup_time) {
       showToast.error('Harap pilih jam pengambilan');
@@ -279,16 +299,23 @@ export default function OrderPage() {
 
       // Build WA message and open seller chat in new tab, then redirect to order-success
       try {
-        const whatsappNumber = '6289661175822'; // fixed seller number
+        const waData = settings?.whatsapp_number;
+        const whatsappNumber = (typeof waData === 'object' && waData?.value) ? waData.value : (typeof waData === 'string' ? waData : null);
         
-        // Format message menggunakan fungsi dari whatsapp.js
-        const formattedMessage = formatOrderWhatsAppMessage(saved, settings);
-        
-        const waUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(formattedMessage)}`;
-        // open WA in new tab/window
-        window.open(waUrl, '_blank');
+        if (!whatsappNumber) {
+          console.error('WhatsApp number not configured');
+          showToast.error('Nomor WhatsApp tidak tersedia');
+        } else {
+          // Format message menggunakan fungsi dari whatsapp.js
+          const formattedMessage = formatOrderWhatsAppMessage(saved, settings);
+          
+          const waUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(formattedMessage)}`;
+          // open WA in new tab/window
+          window.open(waUrl, '_blank');
+        }
       } catch (err) {
-        console.warn('Could not open WhatsApp link', err);
+        console.error('Could not open WhatsApp link', err);
+        showToast.error('Gagal membuka WhatsApp');
       }
 
       showToast.success(
@@ -342,9 +369,66 @@ export default function OrderPage() {
             </p>
           </div>
 
+          {/* Error Overlay when WhatsApp not configured */}
+          {settingsError && (
+            <div className="mb-6">
+              <div className="bg-yellow-50 border-2 border-yellow-400 rounded-xl p-6 text-center shadow-lg">
+                <div className="flex justify-center mb-4">
+                  <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center">
+                    <svg className="w-10 h-10 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  Sistem Sedang dalam Pemeliharaan
+                </h3>
+                <p className="text-gray-700 mb-4 max-w-md mx-auto">
+                  Maaf, sistem pemesanan kami sedang dalam proses konfigurasi. Silakan coba lagi dalam beberapa saat atau hubungi kami langsung melalui email.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+                  <a 
+                    href="mailto:vylbouquet@gmail.com"
+                    className="inline-flex items-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Hubungi via Email
+                  </a>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="inline-flex items-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-3 rounded-lg font-medium transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Muat Ulang Halaman
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
             {/* Form - Span 2 kolom di desktop */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 relative">
+              {/* Overlay untuk disable form */}
+              {settingsError && (
+                <div className="absolute inset-0 bg-gray-100 bg-opacity-75 backdrop-blur-sm rounded-lg md:rounded-xl z-10 flex items-center justify-center">
+                  <div className="text-center p-6">
+                    <div className="animate-pulse mb-4">
+                      <div className="w-12 h-12 bg-pink-200 rounded-full mx-auto flex items-center justify-center">
+                        <svg className="w-6 h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                      </div>
+                    </div>
+                    <p className="text-gray-700 font-medium">Formulir tidak tersedia</p>
+                  </div>
+                </div>
+              )}
+              
               <form
                 onSubmit={handleSubmit}
                 className="bg-white rounded-lg md:rounded-xl shadow-md md:shadow-lg p-4 sm:p-5 md:p-6 lg:p-8 border border-pink-100"
@@ -677,7 +761,12 @@ export default function OrderPage() {
             </div>
 
             {/* Sidebar - Stack di mobile, sidebar di desktop */}
-            <aside className="space-y-4 md:space-y-6">
+            <aside className="space-y-4 md:space-y-6 relative">
+              {/* Overlay untuk disable sidebar */}
+              {settingsError && (
+                <div className="absolute inset-0 bg-gray-100 bg-opacity-60 backdrop-blur-sm rounded-lg z-10"></div>
+              )}
+              
               <div className="p-4 md:p-5 bg-pink-50 rounded-lg border border-pink-200 shadow-sm">
                 <h3 className="text-sm sm:text-base font-semibold mb-2 md:mb-3 text-gray-900">
                   Ringkasan Pembayaran

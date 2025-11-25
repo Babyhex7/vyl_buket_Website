@@ -54,7 +54,7 @@ async function seedSettings() {
       },
       {
         key: "whatsapp_number",
-        value: "6282002048431",
+        value: "",
         description: "Nomor WhatsApp untuk kontak",
       },
       {
