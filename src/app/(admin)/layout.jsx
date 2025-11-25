@@ -57,11 +57,11 @@ export default function AdminLayout({ children }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="flex min-h-screen">
+      <div className="flex">
         
         {/* Sidebar - Hidden di mobile, fixed di desktop */}
         <aside className={`
-          fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out flex-shrink-0
+          fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out
           lg:translate-x-0 lg:static lg:shadow-sm
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}>
@@ -129,7 +129,7 @@ export default function AdminLayout({ children }) {
         )}
         
         {/* Main Content Area */}
-        <main className="flex-1 min-h-screen lg:ml-0 min-w-0 overflow-hidden">
+        <main className="flex-1 min-h-screen lg:ml-0">
           {/* Header - Sticky top */}
           <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
             <div className="px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between">
