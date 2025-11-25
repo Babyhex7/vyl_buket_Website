@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { Op } from "sequelize";
 import { authMiddleware } from "../../../middleware/authMiddleware";
 
+export const dynamic = "force-dynamic";
+
 // GET - Ambil semua bouquets
 export async function GET(request) {
   try {

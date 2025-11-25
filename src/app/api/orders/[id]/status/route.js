@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { Order, OrderLog } from "@/models";
 import { authMiddleware } from "@/middleware/authMiddleware";
 
+export const dynamic = "force-dynamic";
+
 export const PUT = authMiddleware(async function PUT(request, { params }) {
   try {
     const { id } = params;
@@ -22,7 +24,14 @@ export const PUT = authMiddleware(async function PUT(request, { params }) {
 
     // Update order status if provided
     if (body.status) {
-      const validStatuses = ['WAITING_CONFIRMATION', 'PAYMENT_CONFIRMED', 'IN_PROCESS', 'READY_FOR_PICKUP', 'COMPLETED', 'CANCELLED'];
+      const validStatuses = [
+        "WAITING_CONFIRMATION",
+        "PAYMENT_CONFIRMED",
+        "IN_PROCESS",
+        "READY_FOR_PICKUP",
+        "COMPLETED",
+        "CANCELLED",
+      ];
       if (!validStatuses.includes(body.status)) {
         return NextResponse.json(
           { success: false, message: "Invalid status" },
@@ -34,16 +43,16 @@ export const PUT = authMiddleware(async function PUT(request, { params }) {
 
     // Update payment status if provided
     if (body.payment_status) {
-      if (!['UNPAID', 'PAID'].includes(body.payment_status)) {
+      if (!["UNPAID", "PAID"].includes(body.payment_status)) {
         return NextResponse.json(
           { success: false, message: "Invalid payment status" },
           { status: 400 }
         );
       }
       updates.payment_status = body.payment_status;
-      
+
       // If marking as paid, update total_paid to match bouquet_price
-      if (body.payment_status === 'PAID') {
+      if (body.payment_status === "PAID") {
         updates.total_paid = order.bouquet_price;
         updates.remaining_amount = 0;
       }
@@ -54,25 +63,29 @@ export const PUT = authMiddleware(async function PUT(request, { params }) {
 
     // Create log entry if status changed
     if (updates.order_status || updates.payment_status) {
-      const previousStatus = updates.order_status ? oldStatus : oldPaymentStatus;
-      const newStatus = updates.order_status ? updates.order_status : updates.payment_status;
-      
+      const previousStatus = updates.order_status
+        ? oldStatus
+        : oldPaymentStatus;
+      const newStatus = updates.order_status
+        ? updates.order_status
+        : updates.payment_status;
+
       await OrderLog.create({
         order_id: order.id,
         admin_id: 1, // TODO: Get from JWT
         previous_status: previousStatus,
         new_status: newStatus,
-        notes: body.notes || `Status changed via admin panel`
+        notes: body.notes || `Status changed via admin panel`,
       });
     }
 
     return NextResponse.json({
       success: true,
       message: "Order status updated successfully",
-      data: order
+      data: order,
     });
   } catch (error) {
-    console.error('Update status error:', error);
+    console.error("Update status error:", error);
     return NextResponse.json(
       { success: false, message: error.message },
       { status: 500 }

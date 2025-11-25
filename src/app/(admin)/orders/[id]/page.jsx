@@ -4,7 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { 
+  ArrowLeftIcon, 
+  BanknotesIcon, 
+  XMarkIcon 
+} from '@heroicons/react/24/outline';
 import { useToast } from '../../../../hooks/useToast';
 import { useAuth } from '../../../../hooks/useAuth';
 
@@ -405,9 +409,10 @@ export default function OrderDetailPage({ params }) {
                 <button
                   onClick={markAsFullyPaid}
                   disabled={updating}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 disabled:opacity-50 text-sm sm:text-base font-medium touch-target transition-colors"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 disabled:opacity-50 text-sm sm:text-base font-medium touch-target transition-colors flex items-center justify-center gap-2"
                 >
-                  💰 Tandai Pelunasan Dibayar
+                  <BanknotesIcon className="w-5 h-5" />
+                  Tandai Pelunasan Dibayar
                 </button>
               )}
               
@@ -415,9 +420,10 @@ export default function OrderDetailPage({ params }) {
                 <button
                   onClick={() => updateOrderStatus('CANCELLED')}
                   disabled={updating}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 active:bg-red-800 disabled:opacity-50 text-sm sm:text-base font-medium touch-target transition-colors"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 active:bg-red-800 disabled:opacity-50 text-sm sm:text-base font-medium touch-target transition-colors flex items-center justify-center gap-2"
                 >
-                  ✗ Batalkan Pesanan
+                  <XMarkIcon className="w-5 h-5" />
+                  Batalkan Pesanan
                 </button>
               )}
             </div>

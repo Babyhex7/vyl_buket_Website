@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { authMiddleware, getAuthStatus } from "../../../../middleware/authMiddleware";
+import {
+  authMiddleware,
+  getAuthStatus,
+} from "../../../../middleware/authMiddleware";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request) {
   try {
@@ -7,12 +12,14 @@ export async function GET(request) {
     const isAuth = getAuthStatus(request);
     if (!isAuth) {
       // Jika tidak ada JWT, hanya return total buket aktif
-      const activeBouquets = await Bouquet.count({ where: { is_active: true } });
+      const activeBouquets = await Bouquet.count({
+        where: { is_active: true },
+      });
       return NextResponse.json({
         success: true,
         data: {
-          active: activeBouquets
-        }
+          active: activeBouquets,
+        },
       });
     }
     // Jika ada JWT, return semua statistik
@@ -20,7 +27,7 @@ export async function GET(request) {
     const totalBouquets = allBouquets.length;
     const activeBouquets = allBouquets.filter((b) => b.is_active).length;
     const inactiveBouquets = allBouquets.filter((b) => !b.is_active).length;
-    
+
     // Hitung rata-rata hanya dari bouquet yang aktif
     const activeBouquetList = allBouquets.filter((b) => b.is_active);
     const totalPrice = activeBouquetList.reduce(

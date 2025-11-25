@@ -4,9 +4,9 @@ import Link from 'next/link';
 import NavBar from '../../../components/ui/NavBar';
 import Footer from '../../../components/ui/Footer';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 
-export default function OrderSuccessPage() {
+function OrderSuccessContent() {
   const searchParams = useSearchParams();
   const orderIdParam = searchParams.get('order_id');
   const orderNumberParam = searchParams.get('order_number');
@@ -109,36 +109,18 @@ export default function OrderSuccessPage() {
 
   const total = order?.total_price || order?.bouquet?.price || order?.total || 0;
   const paid = order?.total_paid || order?.paid || 0;
+  const remaining = Math.max(0, total - paid);
 
-  // If payment method/channel indicates ShopeePay, apply +Rp 1.000 surcharge
-  const paymentMethodRaw = (order?.payment_method || order?.payment_method_name || order?.payment_channel || '')?.toString() || '';
-  const isShopee = /shopee/i.test(paymentMethodRaw);
-  const surcharge = isShopee ? 1000 : 0;
-
-  const displayTotal = Number(total) + surcharge;
-  const displayRemaining = Math.max(0, displayTotal - paid);
-
-  // Build WhatsApp message to fixed number
-  const whatsappNumber = '6289661175822';
-  const paymentProofs = order?.payment_proofs || order?.paymentProofs || order?.payment_proof || order?.paymentProof || [];
-  let proofText = '-';
-  if (Array.isArray(paymentProofs) && paymentProofs.length > 0) proofText = paymentProofs.join(', ');
-  else if (typeof paymentProofs === 'string' && paymentProofs) proofText = paymentProofs;
-
-  const notes = order?.additional_request || order?.note || order?.notes || order?.message || '-';
-
-  const whatsappMessage = [
-    `Nama pembeli: ${order?.customer_name || order?.name || '-'}`,
-    `Produk yang dipesan: ${order?.bouquet_name || order?.bouquet?.name || '-'}`,
-    `Harga: ${formatPrice(displayTotal)}`,
-    `DP: ${formatPrice(paid)}`,
-    `Sisa pembayaran: ${formatPrice(displayRemaining)}`,
-    `Tanggal pengambilan: ${order?.pickup_date || order?.pickupDate || '-'}`,
-    `Bukti transfer: ${proofText}`,
-    `Catatan tambahan: ${notes}`
-  ].join('\n');
-
-  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
+  // Generate WhatsApp URL using current order data with proper format
+  const whatsappNumber = '6282180881698';
+  let whatsappUrl = '';
+  
+  if (order) {
+    const { formatOrderWhatsAppMessage } = require('../../../lib/whatsapp');
+    // Pass the complete order object directly, formatOrderWhatsAppMessage will handle it
+    const whatsappMessage = formatOrderWhatsAppMessage(order);
+    whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
+  }
 
   return (
     <div className="min-h-screen pb-12 my-12 font-serif">
@@ -204,7 +186,7 @@ export default function OrderSuccessPage() {
               <div className="mt-4 bg-pink-50 border-t border-pink-100 rounded-b-md p-4">
                 <div className="flex justify-between text-sm text-gray-700 mb-1">
                   <span>Total Harga:</span>
-                  <span className="font-semibold">{formatPrice(displayTotal)}</span>
+                  <span className="font-semibold">{formatPrice(total)}</span>
                 </div>
                 <div className="flex justify-between text-sm text-green-600 mb-1">
                   <span>Dibayar:</span>
@@ -212,7 +194,7 @@ export default function OrderSuccessPage() {
                 </div>
                 <div className="flex justify-between text-sm text-rose-500">
                   <span>Sisa:</span>
-                  <span className="font-semibold">{formatPrice(displayRemaining)}</span>
+                  <span className="font-semibold">{formatPrice(remaining)}</span>
                 </div>
               </div>
             </section>
@@ -258,5 +240,17 @@ export default function OrderSuccessPage() {
       {/* Footer */}
       <Footer />
     </div>
+  );
+}
+
+export default function OrderSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
+      </div>
+    }>
+      <OrderSuccessContent />
+    </Suspense>
   );
 }

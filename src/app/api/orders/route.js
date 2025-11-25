@@ -3,6 +3,8 @@ import { Order, Bouquet, OrderImage, sequelize } from "@/models";
 import { verifyToken } from "@/lib/auth";
 import { cookies } from "next/headers";
 
+export const dynamic = "force-dynamic";
+
 // GET - Read all orders (Protected dengan JWT)
 export async function GET(request) {
   try {
@@ -46,7 +48,7 @@ export async function GET(request) {
     if (paymentStatus) {
       whereClause.payment_status = paymentStatus;
     }
-    
+
     // Filter tanggal pengambilan (range)
     if (pickupDateFrom || pickupDateTo) {
       whereClause.pickup_date = {};
@@ -57,7 +59,7 @@ export async function GET(request) {
         whereClause.pickup_date[sequelize.Sequelize.Op.lte] = pickupDateTo;
       }
     }
-    
+
     // Filter waktu pengambilan (range)
     if (pickupTimeFrom || pickupTimeTo) {
       whereClause.pickup_time = {};
@@ -68,11 +70,13 @@ export async function GET(request) {
         whereClause.pickup_time[sequelize.Sequelize.Op.lte] = pickupTimeTo;
       }
     }
-    
+
     if (searchQuery) {
       whereClause[sequelize.Sequelize.Op.or] = [
-        { customer_name: { [sequelize.Sequelize.Op.like]: `%${searchQuery}%` } },
-        { order_number: { [sequelize.Sequelize.Op.like]: `%${searchQuery}%` } }
+        {
+          customer_name: { [sequelize.Sequelize.Op.like]: `%${searchQuery}%` },
+        },
+        { order_number: { [sequelize.Sequelize.Op.like]: `%${searchQuery}%` } },
       ];
     }
 
@@ -152,23 +156,33 @@ export async function POST(request) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     pickupDate.setHours(0, 0, 0, 0);
-    
+
     if (pickupDate < today) {
       await transaction.rollback();
       return NextResponse.json(
-        { success: false, message: "Tanggal pengambilan tidak boleh di masa lalu" },
+        {
+          success: false,
+          message: "Tanggal pengambilan tidak boleh di masa lalu",
+        },
         { status: 400 }
       );
     }
 
     // Validasi waktu pickup (jam operasional 08:00 - 18:00)
     const pickupTime = body.pickup_time;
-    const [pickupHour, pickupMinute] = pickupTime.split(':').map(Number);
-    
-    if (pickupHour < 8 || pickupHour > 18 || (pickupHour === 18 && pickupMinute > 0)) {
+    const [pickupHour, pickupMinute] = pickupTime.split(":").map(Number);
+
+    if (
+      pickupHour < 8 ||
+      pickupHour > 18 ||
+      (pickupHour === 18 && pickupMinute > 0)
+    ) {
       await transaction.rollback();
       return NextResponse.json(
-        { success: false, message: "Jam pengambilan harus antara 08:00 - 18:00 WIB" },
+        {
+          success: false,
+          message: "Jam pengambilan harus antara 08:00 - 18:00 WIB",
+        },
         { status: 400 }
       );
     }
@@ -179,22 +193,34 @@ export async function POST(request) {
       const now = new Date();
       const currentHour = now.getHours();
       const currentMinute = now.getMinutes();
-      
+
       // Calculate minimum allowed time (current + 1 hour)
       const minHour = currentHour + 1;
-      
+
       if (minHour >= 18) {
         await transaction.rollback();
         return NextResponse.json(
-          { success: false, message: "Waktu operasional hari ini sudah habis. Silakan pilih tanggal besok." },
+          {
+            success: false,
+            message:
+              "Waktu operasional hari ini sudah habis. Silakan pilih tanggal besok.",
+          },
           { status: 400 }
         );
       }
-      
-      if (pickupHour < minHour || (pickupHour === minHour && pickupMinute < currentMinute)) {
+
+      if (
+        pickupHour < minHour ||
+        (pickupHour === minHour && pickupMinute < currentMinute)
+      ) {
         await transaction.rollback();
         return NextResponse.json(
-          { success: false, message: `Waktu pengambilan harus minimal 1 jam dari sekarang (minimal ${String(minHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')})` },
+          {
+            success: false,
+            message: `Waktu pengambilan harus minimal 1 jam dari sekarang (minimal ${String(
+              minHour
+            ).padStart(2, "0")}:${String(currentMinute).padStart(2, "0")})`,
+          },
           { status: 400 }
         );
       }
@@ -274,7 +300,10 @@ export async function POST(request) {
     );
 
     // Simpan foto desired bouquet (bisa lebih dari 1)
-    if (body.desired_bouquet_images && Array.isArray(body.desired_bouquet_images)) {
+    if (
+      body.desired_bouquet_images &&
+      Array.isArray(body.desired_bouquet_images)
+    ) {
       for (let i = 0; i < body.desired_bouquet_images.length; i++) {
         await OrderImage.create(
           {

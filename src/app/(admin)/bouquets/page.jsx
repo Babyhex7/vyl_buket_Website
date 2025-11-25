@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import BouquetModal from '../../../components/admin/BouquetModal';
 import SearchBar from '../../../components/ui/SearchBar';
 import FilterSelect from '../../../components/ui/FilterSelect';
@@ -294,14 +295,14 @@ export default function BouquetsPage() {
                     onClick={() => handleEdit(bouquet)}
                     className="flex-1 bg-blue-50 text-blue-600 py-2 px-2 sm:px-3 rounded-lg hover:bg-blue-100 active:bg-blue-200 transition-colors font-medium text-xs sm:text-sm flex items-center justify-center gap-1 sm:gap-1.5 touch-target"
                   >
-                    <span>✏️</span>
+                    <PencilIcon className="w-4 h-4" />
                     <span className="hidden sm:inline">Edit</span>
                   </button>
                   <button
                     onClick={() => handleDelete(bouquet.id, bouquet.name)}
                     className="flex-1 bg-red-50 text-red-600 py-2 px-2 sm:px-3 rounded-lg hover:bg-red-100 active:bg-red-200 transition-colors font-medium text-xs sm:text-sm flex items-center justify-center gap-1 sm:gap-1.5 touch-target"
                   >
-                    <span>🗑️</span>
+                    <TrashIcon className="w-4 h-4" />
                     <span className="hidden sm:inline">Hapus</span>
                   </button>
                 </div>

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { authMiddleware } from "../../../../middleware/authMiddleware";
 
+export const dynamic = "force-dynamic";
+
 // GET - Ambil bouquet by ID
 export async function GET(request, { params }) {
   try {
@@ -88,7 +90,10 @@ export const PUT = authMiddleware(async function PUT(request, { params }) {
 });
 
 // DELETE - Hapus bouquet
-export const DELETE = authMiddleware(async function DELETE(request, { params }) {
+export const DELETE = authMiddleware(async function DELETE(
+  request,
+  { params }
+) {
   try {
     const { id } = params;
 

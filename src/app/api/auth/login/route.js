@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { comparePassword, generateToken } from "../../../../lib/auth";
 
+export const dynamic = "force-dynamic";
+
 // Helper to load Admin model safely with clearer errors
 async function getAdminModel() {
   try {

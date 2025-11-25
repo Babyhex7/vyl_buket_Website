@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { Order, Bouquet, OrderImage } from "@/models";
 import { verifyToken } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request, { params }) {
   try {
     // Verify token from cookies
@@ -10,12 +12,18 @@ export async function GET(request, { params }) {
     const token = cookieStore.get("auth_token")?.value;
 
     if (!token) {
-      return NextResponse.json({ success: false, message: "Token tidak ditemukan" }, { status: 401 });
+      return NextResponse.json(
+        { success: false, message: "Token tidak ditemukan" },
+        { status: 401 }
+      );
     }
 
     const decoded = verifyToken(token);
     if (!decoded) {
-      return NextResponse.json({ success: false, message: "Token tidak valid" }, { status: 401 });
+      return NextResponse.json(
+        { success: false, message: "Token tidak valid" },
+        { status: 401 }
+      );
     }
 
     const { id } = params;
@@ -62,12 +70,18 @@ export async function PUT(request, { params }) {
     const token = cookieStore.get("auth_token")?.value;
 
     if (!token) {
-      return NextResponse.json({ success: false, message: "Token tidak ditemukan" }, { status: 401 });
+      return NextResponse.json(
+        { success: false, message: "Token tidak ditemukan" },
+        { status: 401 }
+      );
     }
 
     const decoded = verifyToken(token);
     if (!decoded) {
-      return NextResponse.json({ success: false, message: "Token tidak valid" }, { status: 401 });
+      return NextResponse.json(
+        { success: false, message: "Token tidak valid" },
+        { status: 401 }
+      );
     }
 
     const { id } = params;
