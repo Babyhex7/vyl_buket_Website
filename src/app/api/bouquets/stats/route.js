@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { authMiddleware, getAuthStatus } from "../../../../middleware/authMiddleware";
 
-export const dynamic = 'force-dynamic';
-
 export async function GET(request) {
   try {
     const Bouquet = (await import("../../../../models/Bouquet")).default;

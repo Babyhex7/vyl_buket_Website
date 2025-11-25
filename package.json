@@ -5,9 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "node --max-old-space-size=1024 server.js",
-    "start:limited": "node server.js",
-    "start:next": "next start",
+    "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
@@ -25,7 +23,6 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.4.20",
-    "cross-env": "^10.1.0",
     "eslint": "^9.39.1",
     "eslint-config-next": "^16.0.3",
     "postcss": "^8.4.41",

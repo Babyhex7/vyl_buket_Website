@@ -3,9 +3,9 @@
 import Link from 'next/link';
 import NavBar from '../../../components/ui/NavBar';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState } from 'react';
 
-function OrderSuccessPageContent() {
+export default function OrderSuccessPage() {
   const searchParams = useSearchParams();
   const orderIdParam = searchParams.get('order_id');
   const orderNumberParam = searchParams.get('order_number');
@@ -254,19 +254,5 @@ function OrderSuccessPageContent() {
         )}
       </main>
     </div>
-  );
-}
-
-export default function OrderSuccessPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
-        </div>
-      }
-    >
-      <OrderSuccessPageContent />
-    </Suspense>
   );
 }
