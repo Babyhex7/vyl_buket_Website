@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { authMiddleware } from "../../../middleware/authMiddleware";
 
+export const dynamic = 'force-dynamic';
+
 // GET - Ambil semua settings
 export async function GET(request) {
   try {
