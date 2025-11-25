@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import NavBar from '../../../components/ui/NavBar';
+import Footer from '../../../components/ui/Footer';
 import Pagination from '../../../components/ui/Pagination';
 import { usePagination } from '../../../hooks/usePagination';
 
@@ -205,6 +206,9 @@ export default function CatalogPage() {
           )}
         </div>
       </div>
+      
+      {/* Footer */}
+      <Footer />
     </>
   );
 }

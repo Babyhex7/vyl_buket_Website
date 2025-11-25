@@ -147,6 +147,59 @@ export async function POST(request) {
       }
     }
 
+    // Validasi tanggal pickup tidak boleh kemarin
+    const pickupDate = new Date(body.pickup_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    pickupDate.setHours(0, 0, 0, 0);
+    
+    if (pickupDate < today) {
+      await transaction.rollback();
+      return NextResponse.json(
+        { success: false, message: "Tanggal pengambilan tidak boleh di masa lalu" },
+        { status: 400 }
+      );
+    }
+
+    // Validasi waktu pickup (jam operasional 08:00 - 18:00)
+    const pickupTime = body.pickup_time;
+    const [pickupHour, pickupMinute] = pickupTime.split(':').map(Number);
+    
+    if (pickupHour < 8 || pickupHour > 18 || (pickupHour === 18 && pickupMinute > 0)) {
+      await transaction.rollback();
+      return NextResponse.json(
+        { success: false, message: "Jam pengambilan harus antara 08:00 - 18:00 WIB" },
+        { status: 400 }
+      );
+    }
+
+    // Validasi jika hari ini, harus minimal 1 jam ke depan
+    const isToday = pickupDate.getTime() === today.getTime();
+    if (isToday) {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      
+      // Calculate minimum allowed time (current + 1 hour)
+      const minHour = currentHour + 1;
+      
+      if (minHour >= 18) {
+        await transaction.rollback();
+        return NextResponse.json(
+          { success: false, message: "Waktu operasional hari ini sudah habis. Silakan pilih tanggal besok." },
+          { status: 400 }
+        );
+      }
+      
+      if (pickupHour < minHour || (pickupHour === minHour && pickupMinute < currentMinute)) {
+        await transaction.rollback();
+        return NextResponse.json(
+          { success: false, message: `Waktu pengambilan harus minimal 1 jam dari sekarang (minimal ${String(minHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')})` },
+          { status: 400 }
+        );
+      }
+    }
+
     // Cek bouquet exists
     const bouquet = await Bouquet.findByPk(body.bouquet_id);
     if (!bouquet) {
@@ -166,12 +219,12 @@ export async function POST(request) {
     }
 
     // Generate order number (format: ORD-YYYYMMDD-XXXX)
-    const today = new Date();
-    const dateStr = today.toISOString().slice(0, 10).replace(/-/g, "");
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, "");
     const count = await Order.count({
       where: sequelize.where(
         sequelize.fn("DATE", sequelize.col("created_at")),
-        today.toISOString().slice(0, 10)
+        now.toISOString().slice(0, 10)
       ),
     });
     const orderNumber = `ORD-${dateStr}-${String(count + 1).padStart(4, "0")}`;
@@ -219,7 +272,9 @@ export async function POST(request) {
       },
       { transaction }
     );
-(body.desired_bouquet_images && Array.isArray(body.desired_bouquet_images)); {
+
+    // Simpan foto desired bouquet (bisa lebih dari 1)
+    if (body.desired_bouquet_images && Array.isArray(body.desired_bouquet_images)) {
       for (let i = 0; i < body.desired_bouquet_images.length; i++) {
         await OrderImage.create(
           {

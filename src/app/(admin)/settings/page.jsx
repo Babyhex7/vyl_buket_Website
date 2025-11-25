@@ -20,7 +20,6 @@ export default function SettingsPage() {
     payment_seabank_desc: '',
     payment_shopeepay: '',
     payment_shopeepay_desc: '',
-    min_dp_percent: '30',
     whatsapp_number: '',
     instagram_handle: '',
   });
@@ -40,7 +39,6 @@ export default function SettingsPage() {
           payment_seabank_desc: data.data.payment_seabank?.description || '',
           payment_shopeepay: data.data.payment_shopeepay?.value || '',
           payment_shopeepay_desc: data.data.payment_shopeepay?.description || '',
-          min_dp_percent: data.data.min_dp_percent || '30',
           whatsapp_number: data.data.whatsapp_number || '',
           instagram_handle: data.data.instagram_handle || '',
         });
@@ -81,11 +79,6 @@ export default function SettingsPage() {
       return;
     }
 
-    if (settings.min_dp_percent && (isNaN(settings.min_dp_percent) || settings.min_dp_percent < 0 || settings.min_dp_percent > 100)) {
-      showToast.error('Minimal DP harus antara 0-100%');
-      return;
-    }
-
     try {
       setSaving(true);
       
@@ -94,7 +87,6 @@ export default function SettingsPage() {
         payment_bca: { value: settings.payment_bca, description: settings.payment_bca_desc },
         payment_seabank: { value: settings.payment_seabank, description: settings.payment_seabank_desc },
         payment_shopeepay: { value: settings.payment_shopeepay, description: settings.payment_shopeepay_desc },
-        min_dp_percent: settings.min_dp_percent,
         whatsapp_number: settings.whatsapp_number,
         instagram_handle: settings.instagram_handle,
       };
@@ -142,25 +134,6 @@ export default function SettingsPage() {
       </div>
       
       <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-        {/* DP Settings */}
-        <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
-          <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">Pengaturan DP</h2>
-          
-          <div>
-            <Input
-              label="Persentase Minimal DP (%)"
-              name="min_dp_percent"
-              type="number"
-              value={settings.min_dp_percent}
-              onChange={handleChange}
-              placeholder="30"
-              min="0"
-              max="100"
-            />
-            <p className="text-sm text-gray-500 mt-1">Minimal persentase DP yang harus dibayar customer</p>
-          </div>
-        </div>
-
         {/* Payment Methods */}
         <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
           <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">Metode Pembayaran</h2>
@@ -233,21 +206,6 @@ export default function SettingsPage() {
 
           <div>
             <p className="text-xs text-pink-500 font-medium">💡 Catatan: Transfer ShopeePay dari bank dikenakan biaya admin +Rp 1.000</p>
-          </div>
-        </div>
-
-        {/* Operational Hours */}
-        <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
-          <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">Jam Operasional</h2>
-          
-          <div>
-            <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-3">Jam Pengambilan</h3>
-            <textarea
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-              rows="3"
-              placeholder="Senin-Sabtu: 08.00-18.00 WIB | Minggu: 10.00-15.00 WIB"
-              defaultValue="Senin-Sabtu: 08.00-18.00 WIB | Minggu: 10.00-15.00 WIB"
-            />
           </div>
         </div>
 

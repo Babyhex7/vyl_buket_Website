@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ShoppingBagIcon, SparklesIcon, HeartIcon, ArrowDownLeftIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
 import NavBar from '../components/ui/NavBar'
+import Footer from '../components/ui/Footer'
 
 export default function Home() {
   return (
@@ -97,6 +98,11 @@ export default function Home() {
             </div>
           </div>
         </div>
+      </div>
+      
+      {/* Footer */}
+      <div className="relative z-20">
+        <Footer />
       </div>
     </main>
   )

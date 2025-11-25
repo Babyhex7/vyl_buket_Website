@@ -4,7 +4,10 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import NavBar from "../../../components/ui/NavBar";
+import Footer from "../../../components/ui/Footer";
+import Modal from "../../../components/ui/Modal";
 import { useToast } from "../../../hooks/useToast";
+import { formatOrderWhatsAppMessage } from "../../../lib/whatsapp";
 
 export default function OrderPage() {
   const router = useRouter();
@@ -18,6 +21,7 @@ export default function OrderPage() {
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
 
   const [formData, setFormData] = useState({
     customer_name: "",
@@ -37,6 +41,102 @@ export default function OrderPage() {
   const [referenceFiles, setReferenceFiles] = useState([]);
   const [paymentFiles, setPaymentFiles] = useState([]);
   const [showBouquetDropdown, setShowBouquetDropdown] = useState(false);
+  const [minDate, setMinDate] = useState('');
+  const [minTime, setMinTime] = useState('08:00');
+  const [maxTime] = useState('18:00');
+  const [timeError, setTimeError] = useState('');
+  const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
+  const [showTimeDropdown, setShowTimeDropdown] = useState(false);
+
+  // Set minimum date (today)
+  useEffect(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    setMinDate(`${year}-${month}-${day}`);
+  }, []);
+
+  // Validate time based on selected date
+  useEffect(() => {
+    if (formData.pickup_date) {
+      const now = new Date();
+      const selectedDate = new Date(formData.pickup_date);
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const selected = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+      
+      // If today is selected, set minimum time to current time + 1 hour
+      if (selected.getTime() === today.getTime()) {
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        
+        // Check if it's before operational hours
+        if (currentHour < 8) {
+          // Can book from 8:00 onwards
+          generateTimeSlots(8, 0, 18, 0);
+          setTimeError('');
+        } else if (currentHour >= 17) {
+          // Too late to book today (need at least 1 hour before closing)
+          setTimeError('Waktu operasional hari ini sudah habis (08:00-18:00). Silakan pilih tanggal besok.');
+          setFormData(prev => ({ ...prev, pickup_date: '', pickup_time: '' }));
+          setAvailableTimeSlots([]);
+          return;
+        } else {
+          // Generate slots from (current time + 1 hour) to 18:00
+          const minHour = currentHour + 1;
+          const minMinute = currentMinute;
+          generateTimeSlots(minHour, minMinute, 18, 0);
+          setTimeError('');
+        }
+        
+        // Reset time if current selected time is not in available slots
+        if (formData.pickup_time) {
+          const isValid = availableTimeSlots.some(slot => slot.value === formData.pickup_time);
+          if (!isValid && availableTimeSlots.length > 0) {
+            setFormData(prev => ({ ...prev, pickup_time: '' }));
+          }
+        }
+      } else {
+        // For future dates, all operational hours available (08:00 - 18:00)
+        generateTimeSlots(8, 0, 18, 0);
+        setTimeError('');
+      }
+    } else {
+      setAvailableTimeSlots([]);
+    }
+  }, [formData.pickup_date]);
+
+  // Generate time slots in 30-minute intervals
+  const generateTimeSlots = (startHour, startMinute, endHour, endMinute) => {
+    const slots = [];
+    let currentHour = startHour;
+    let currentMinute = Math.ceil(startMinute / 30) * 30; // Round up to nearest 30 min
+    
+    if (currentMinute >= 60) {
+      currentHour += 1;
+      currentMinute = 0;
+    }
+    
+    while (currentHour < endHour || (currentHour === endHour && currentMinute === 0)) {
+      const timeStr = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`;
+      slots.push({
+        value: timeStr,
+        label: timeStr
+      });
+      
+      currentMinute += 30;
+      if (currentMinute >= 60) {
+        currentHour += 1;
+        currentMinute = 0;
+      }
+      
+      // Stop if we've passed the end hour
+      if (currentHour > endHour) break;
+    }
+    
+    setAvailableTimeSlots(slots);
+    setMinTime(slots.length > 0 ? slots[0].value : '08:00');
+  };
 
   useEffect(() => {
     // Load bouquets and settings in parallel for faster startup
@@ -76,11 +176,14 @@ export default function OrderPage() {
       if (showBouquetDropdown && !event.target.closest('.bouquet-dropdown-container')) {
         setShowBouquetDropdown(false);
       }
+      if (showTimeDropdown && !event.target.closest('.time-dropdown-container')) {
+        setShowTimeDropdown(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showBouquetDropdown]);
+  }, [showBouquetDropdown, showTimeDropdown]);
 
   const handleBouquetChange = (bouquetId) => {
     setFormData((prev) => ({ ...prev, bouquet_id: bouquetId }));
@@ -124,6 +227,18 @@ export default function OrderPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validate pickup time is selected and within available slots
+    if (!formData.pickup_time) {
+      showToast.error('Harap pilih jam pengambilan');
+      return;
+    }
+
+    const isValidTime = availableTimeSlots.some(slot => slot.value === formData.pickup_time);
+    if (!isValidTime) {
+      showToast.error('Jam pengambilan yang dipilih tidak valid. Silakan pilih ulang.');
+      return;
+    }
+
     if (!paymentFiles || paymentFiles.length === 0) {
       showToast.error("Harap upload bukti transfer/DP terlebih dahulu");
       return;
@@ -165,18 +280,11 @@ export default function OrderPage() {
       // Build WA message and open seller chat in new tab, then redirect to order-success
       try {
         const whatsappNumber = '6289661175822'; // fixed seller number
-        const proofs = Array.isArray(payUrls) && payUrls.length ? payUrls.join(', ') : (saved?.payment_proofs || '-') ;
-        const msgLines = [
-          `Nama pembeli: ${formData.customer_name || saved?.customer_name || '-'}`,
-          `Produk yang dipesan: ${selectedBouquet?.name || saved?.bouquet_name || saved?.bouquet?.name || '-'}`,
-          `Harga: ${formatPrice(payment.total)}`,
-          `DP: ${formatPrice(payment.dp)}`,
-          `Sisa pembayaran: ${formatPrice(payment.remaining)}`,
-          `Tanggal pengambilan: ${formData.pickup_date || saved?.pickup_date || '-'}`,
-          `Bukti transfer: ${proofs}`,
-          `Catatan tambahan: ${formData.additional_request || saved?.additional_request || saved?.note || '-'}`,
-        ];
-        const waUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(msgLines.join('\n'))}`;
+        
+        // Format message menggunakan fungsi dari whatsapp.js
+        const formattedMessage = formatOrderWhatsAppMessage(saved, settings);
+        
+        const waUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(formattedMessage)}`;
         // open WA in new tab/window
         window.open(waUrl, '_blank');
       } catch (err) {
@@ -349,6 +457,7 @@ export default function OrderPage() {
                     <input
                       type="date"
                       required
+                      min={minDate}
                       value={formData.pickup_date}
                       onChange={(e) =>
                         setFormData({
@@ -358,23 +467,59 @@ export default function OrderPage() {
                       }
                       className="w-full px-3 py-2.5 md:py-2 border border-pink-200 rounded-md focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition-all text-sm sm:text-base touch-target"
                     />
+                    <p className="text-xs text-gray-500 mt-1">Tidak bisa memilih tanggal kemarin</p>
                   </div>
                   <div>
                     <label className="block text-xs sm:text-sm font-medium mb-1.5 md:mb-2 text-gray-700">
                       Jam Ambil *
                     </label>
+                    <div className="relative time-dropdown-container">
+                      <button
+                        type="button"
+                        onClick={() => formData.pickup_date && setShowTimeDropdown(!showTimeDropdown)}
+                        disabled={!formData.pickup_date}
+                        className="w-full px-3 py-2.5 md:py-2 border border-pink-200 rounded-md focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition-all text-sm sm:text-base touch-target cursor-pointer bg-white text-left flex items-center justify-between disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      >
+                        <span className={formData.pickup_time ? 'text-gray-900' : 'text-gray-500'}>
+                          {formData.pickup_time || 'Pilih jam pengambilan'}
+                        </span>
+                        <svg className={`w-5 h-5 text-gray-400 transition-transform ${showTimeDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      
+                      {showTimeDropdown && availableTimeSlots.length > 0 && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-pink-200 rounded-md shadow-lg max-h-60 overflow-auto">
+                          {availableTimeSlots.map((slot) => (
+                            <button
+                              key={slot.value}
+                              type="button"
+                              onClick={() => {
+                                setFormData({ ...formData, pickup_time: slot.value });
+                                setShowTimeDropdown(false);
+                              }}
+                              className={`w-full px-3 py-2.5 text-left hover:bg-pink-50 transition-colors text-sm ${
+                                formData.pickup_time === slot.value ? 'bg-pink-50 text-pink-600 font-semibold' : 'text-gray-700'
+                              }`}
+                            >
+                              {slot.label} WIB
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {/* Hidden input for form validation */}
                     <input
-                      type="time"
+                      type="hidden"
                       required
                       value={formData.pickup_time}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          pickup_time: e.target.value,
-                        })
-                      }
-                      className="w-full px-3 py-2.5 md:py-2 border border-pink-200 rounded-md focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition-all text-sm sm:text-base touch-target"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Jam operasional: 08:00 - 18:00 WIB (minimal 1 jam dari sekarang)
+                    </p>
+                    {timeError && (
+                      <p className="text-xs text-red-500 mt-1 font-medium">{timeError}</p>
+                    )}
                   </div>
                 </div>
 
@@ -620,6 +765,9 @@ export default function OrderPage() {
           </div>
         </div>
       </div>
+      
+      {/* Footer */}
+      <Footer />
     </>
   );
 }

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import NavBar from '../../../components/ui/NavBar';
+import Footer from '../../../components/ui/Footer';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -253,6 +254,9 @@ export default function OrderSuccessPage() {
           </>
         )}
       </main>
+      
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }
